@@ -3,7 +3,7 @@
   "productName": "RISE+",
   "version": "1.0.0",
   "description": "RISE+ by CanU Canada for Windows and Linux: opens the live RISE+ app in its own window.",
-  "author": "CanU Canada",
+  "author": "CanU Canada <Nicholas02K17@users.noreply.github.com>",
   "license": "MIT",
   "private": true,
   "main": "main.js",
@@ -25,11 +25,25 @@
       "output": "dist",
       "buildResources": "build"
     },
-    "files": ["main.js", "error.html", "package.json"],
+    "files": [
+      "main.js",
+      "error.html",
+      "package.json"
+    ],
     "win": {
       "target": [
-        { "target": "nsis", "arch": ["x64"] },
-        { "target": "portable", "arch": ["x64"] }
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
       "icon": "build/icon.png"
     },
@@ -45,10 +59,13 @@
       "artifactName": "RISE-Plus-Portable.${ext}"
     },
     "linux": {
-      "target": ["AppImage", "deb"],
+      "target": [
+        "AppImage",
+        "deb"
+      ],
       "category": "Utility",
       "icon": "build/icon.png",
-      "maintainer": "CanU Canada",
+      "maintainer": "CanU Canada <Nicholas02K17@users.noreply.github.com>",
       "synopsis": "RISE+ by CanU Canada",
       "artifactName": "RISE-Plus.${ext}"
     },
