@@ -67,7 +67,8 @@
       "icon": "build/icon.png",
       "maintainer": "CanU Canada <Nicholas02K17@users.noreply.github.com>",
       "synopsis": "RISE+ by CanU Canada",
-      "artifactName": "RISE-Plus.${ext}"
+      "artifactName": "RISE-Plus.${ext}",
+      "executableName": "rise-plus"
     },
     "deb": {
       "artifactName": "rise-plus.${ext}"
