@@ -1,0 +1,59 @@
+{
+  "name": "rise-plus-desktop",
+  "productName": "RISE+",
+  "version": "1.0.0",
+  "description": "RISE+ by CanU Canada for Windows and Linux: opens the live RISE+ app in its own window.",
+  "author": "CanU Canada",
+  "license": "MIT",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win",
+    "dist:linux": "electron-builder --linux",
+    "dist:all": "electron-builder --win --linux"
+  },
+  "devDependencies": {
+    "electron": "^44.3.0",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "org.canucanada.riseplus",
+    "productName": "RISE+",
+    "copyright": "CanU Canada",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": ["main.js", "error.html", "package.json"],
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] },
+        { "target": "portable", "arch": ["x64"] }
+      ],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "artifactName": "RISE-Plus-Setup.${ext}",
+      "shortcutName": "RISE+",
+      "uninstallDisplayName": "RISE+",
+      "deleteAppDataOnUninstall": false
+    },
+    "portable": {
+      "artifactName": "RISE-Plus-Portable.${ext}"
+    },
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "category": "Utility",
+      "icon": "build/icon.png",
+      "maintainer": "CanU Canada",
+      "synopsis": "RISE+ by CanU Canada",
+      "artifactName": "RISE-Plus.${ext}"
+    },
+    "deb": {
+      "artifactName": "rise-plus.${ext}"
+    }
+  }
+}
