@@ -51,8 +51,10 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/RISE-Plus-Setup.exe
-            dist/RISE-Plus-Portable.exe
+            dist/RISE-Plus-Setup-x64.exe
+            dist/RISE-Plus-Setup-ia32.exe
+            dist/RISE-Plus-Portable-x64.exe
+            dist/RISE-Plus-Portable-ia32.exe
             dist/RISE-Plus.AppImage
             dist/rise-plus.deb
           fail_on_unmatched_files: false

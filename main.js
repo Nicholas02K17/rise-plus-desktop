@@ -8,6 +8,7 @@ const SITE = 'https://rise-plus.onrender.com';
 const SITE_ORIGIN = new URL(SITE).origin;
 const RELEASES_API = 'https://api.github.com/repos/Nicholas02K17/rise-plus-desktop/releases/latest';
 const RELEASES_PAGE = 'https://github.com/Nicholas02K17/rise-plus-desktop/releases/latest';
+const RELEASES_DOWNLOAD = 'https://github.com/Nicholas02K17/rise-plus-desktop/releases/latest/download';
 const STATE_FILE = () => path.join(app.getPath('userData'), 'window-state.json');
 
 app.setAppUserModelId('org.canucanada.riseplus');
@@ -140,7 +141,33 @@ function newerThan(a, b) {
   return false;
 }
 
-/** The shell rarely needs updating (the app itself is live), but when it does, point people at the download page. */
+/**
+ * The release file that matches this computer and the way RISE+ was installed here, so the update button
+ * downloads the right one directly. Windows comes in 64-bit (x64) and 32-bit (ia32) versions, each as an
+ * installer or a portable exe; Linux as an AppImage or a .deb. Returns null when there is no matching build
+ * (for example Windows on ARM), in which case the Releases page is shown instead.
+ */
+function downloadFileForThisComputer() {
+  if (process.platform === 'win32') {
+    if (process.arch !== 'x64' && process.arch !== 'ia32') return null;
+    const portable = Boolean(process.env.PORTABLE_EXECUTABLE_FILE); // set by the portable exe launcher
+    return `RISE-Plus-${portable ? 'Portable' : 'Setup'}-${process.arch}.exe`;
+  }
+  if (process.platform === 'linux' && process.arch === 'x64') {
+    return process.env.APPIMAGE ? 'RISE-Plus.AppImage' : 'rise-plus.deb'; // APPIMAGE is set by the AppImage runtime
+  }
+  return null;
+}
+
+/** Where "Download" goes: the exact file when the release has it, otherwise the Releases page. */
+function downloadUrl(release) {
+  const file = downloadFileForThisComputer();
+  const assets = Array.isArray(release.assets) ? release.assets : [];
+  if (file && assets.some((asset) => asset && asset.name === file)) return `${RELEASES_DOWNLOAD}/${file}`;
+  return RELEASES_PAGE;
+}
+
+/** The shell rarely needs updating (the app itself is live), but when it does, point people at the download. */
 async function checkForUpdates({ manual = false } = {}) {
   try {
     const res = await fetch(RELEASES_API, { headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'rise-plus-desktop' } });
@@ -152,12 +179,12 @@ async function checkForUpdates({ manual = false } = {}) {
         type: 'info',
         title: 'RISE+ update',
         message: `A newer version of the RISE+ desktop app is available (${latest}).`,
-        detail: 'Your events and account are not affected; only this window program is updated.',
+        detail: 'Your events and account are not affected; only this window program is updated. The download matches this computer.',
         buttons: ['Download', 'Later'],
         defaultId: 0,
         cancelId: 1,
       });
-      if (response === 0) shell.openExternal(RELEASES_PAGE);
+      if (response === 0) shell.openExternal(downloadUrl(release));
     } else if (manual) {
       dialog.showMessageBox({ type: 'info', title: 'RISE+ update', message: 'You have the latest version.' });
     }

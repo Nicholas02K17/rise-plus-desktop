@@ -1,7 +1,7 @@
 {
   "name": "rise-plus-desktop",
   "productName": "RISE+",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "RISE+ by CanU Canada for Windows and Linux: opens the live RISE+ app in its own window.",
   "author": "CanU Canada <Nicholas02K17@users.noreply.github.com>",
   "license": "MIT",
@@ -14,7 +14,7 @@
     "dist:all": "electron-builder --win --linux --publish never"
   },
   "devDependencies": {
-    "electron": "^44.3.0",
+    "electron": "^43.7.1",
     "electron-builder": "^26.15.3"
   },
   "build": {
@@ -35,13 +35,15 @@
         {
           "target": "nsis",
           "arch": [
-            "x64"
+            "x64",
+            "ia32"
           ]
         },
         {
           "target": "portable",
           "arch": [
-            "x64"
+            "x64",
+            "ia32"
           ]
         }
       ],
@@ -50,13 +52,15 @@
     "nsis": {
       "oneClick": true,
       "perMachine": false,
-      "artifactName": "RISE-Plus-Setup.${ext}",
+      "buildUniversalInstaller": false,
+      "artifactName": "RISE-Plus-Setup-${arch}.${ext}",
       "shortcutName": "RISE+",
       "uninstallDisplayName": "RISE+",
       "deleteAppDataOnUninstall": false
     },
     "portable": {
-      "artifactName": "RISE-Plus-Portable.${ext}"
+      "buildUniversalInstaller": false,
+      "artifactName": "RISE-Plus-Portable-${arch}.${ext}"
     },
     "linux": {
       "target": [
