@@ -1,8 +1,20 @@
 // RISE+ desktop shell: a window that shows the live RISE+ app (https://rise-plus.onrender.com).
 // Nothing runs locally except this window; every screen comes from the server, so the app is always current.
-const { app, BrowserWindow, shell, Menu, dialog, nativeImage } = require('electron');
+//
+// Two builds come out of this one file. The regular build uses a current Electron and runs on Windows 10/11 and
+// Linux. The "legacy" build (electron-builder.legacy.yml) uses Electron 22, the last version that starts on
+// Windows 7, 8 and 8.1. Electron 22 stopped receiving security fixes in October 2023, so the legacy build says so
+// in its user agent ("RISEPlusLegacy/<version>"): the website shows a use-at-your-own-risk notice and the server
+// refuses admin and president sign-ins from it. Everything below must therefore stay compatible with Electron 22
+// (Node 16: no global fetch, no navigationHistory).
+const { app, BrowserWindow, shell, Menu, dialog, nativeImage, net, session } = require('electron');
 const fs = require('node:fs');
 const path = require('node:path');
+
+const APP_VERSION = require('./package.json').version; // app.getVersion() is Electron's own version when run from source
+const ELECTRON_MAJOR = Number(String(process.versions.electron || '').split('.')[0]) || 0;
+const LEGACY = ELECTRON_MAJOR > 0 && ELECTRON_MAJOR < 23;
+if (LEGACY) app.userAgentFallback = `${app.userAgentFallback} RISEPlusLegacy/${APP_VERSION}`;
 
 const SITE = 'https://rise-plus.onrender.com';
 const SITE_ORIGIN = new URL(SITE).origin;
@@ -86,12 +98,14 @@ function createWindow() {
     openOutside(url);
     return { action: 'deny' };
   });
-  win.webContents.on('will-navigate', (event, url) => {
+  const keepInside = (event, url) => {
     if (!isSiteUrl(url)) {
       event.preventDefault();
       openOutside(url);
     }
-  });
+  };
+  win.webContents.on('will-navigate', keepInside);
+  win.webContents.on('will-redirect', keepInside); // a redirect to another site opens outside as well
 
   // Offline or server asleep: show a friendly page with a retry button instead of Chromium's error.
   win.webContents.on('did-fail-load', (event, code, description, validatedUrl, isMainFrame) => {
@@ -108,13 +122,44 @@ function createWindow() {
   return win;
 }
 
+/** Back one page. navigationHistory exists from Electron 32; Electron 22 still has the older methods. */
+function goBack(webContents) {
+  const history = webContents.navigationHistory;
+  if (history) {
+    if (history.canGoBack()) history.goBack();
+  } else if (typeof webContents.canGoBack === 'function' && webContents.canGoBack()) {
+    webContents.goBack();
+  }
+}
+
+/**
+ * Browser permissions the page may ask for. Only notifications (the site's own alerts); the camera, microphone,
+ * location, USB and the rest are refused without asking, and nothing is granted to a page outside the site.
+ */
+const ALLOWED_PERMISSIONS = new Set(['notifications']);
+function lockPermissions() {
+  const fromSite = (details) => {
+    try {
+      return Boolean(details && details.requestingUrl && new URL(details.requestingUrl).origin === SITE_ORIGIN);
+    } catch {
+      return false;
+    }
+  };
+  session.defaultSession.setPermissionRequestHandler((webContents, permission, callback, details) => {
+    callback(ALLOWED_PERMISSIONS.has(permission) && fromSite(details));
+  });
+  session.defaultSession.setPermissionCheckHandler((webContents, permission, origin) => {
+    return ALLOWED_PERMISSIONS.has(permission) && origin === SITE_ORIGIN;
+  });
+}
+
 function buildMenu() {
   const template = [
     {
       label: 'RISE+',
       submenu: [
         { label: 'Reload', accelerator: 'CmdOrCtrl+R', click: (_, win) => win && win.loadURL(SITE) },
-        { label: 'Back', accelerator: 'Alt+Left', click: (_, win) => win && win.webContents.navigationHistory.canGoBack() && win.webContents.navigationHistory.goBack() },
+        { label: 'Back', accelerator: 'Alt+Left', click: (_, win) => win && goBack(win.webContents) },
         { type: 'separator' },
         { role: 'zoomIn' },
         { role: 'zoomOut' },
@@ -151,7 +196,7 @@ function downloadFileForThisComputer() {
   if (process.platform === 'win32') {
     if (process.arch !== 'x64' && process.arch !== 'ia32') return null;
     const portable = Boolean(process.env.PORTABLE_EXECUTABLE_FILE); // set by the portable exe launcher
-    return `RISE-Plus-${portable ? 'Portable' : 'Setup'}-${process.arch}.exe`;
+    return `RISE-Plus-${portable ? 'Portable' : 'Setup'}-${LEGACY ? 'win7-' : ''}${process.arch}.exe`;
   }
   if (process.platform === 'linux' && process.arch === 'x64') {
     return process.env.APPIMAGE ? 'RISE-Plus.AppImage' : 'rise-plus.deb'; // APPIMAGE is set by the AppImage runtime
@@ -167,14 +212,36 @@ function downloadUrl(release) {
   return RELEASES_PAGE;
 }
 
+/** GET a JSON document with Electron's own network stack (works on every Electron version, unlike global fetch). */
+function getJson(url) {
+  return new Promise((resolve, reject) => {
+    const request = net.request({ url, method: 'GET' });
+    request.setHeader('Accept', 'application/vnd.github+json');
+    request.setHeader('User-Agent', 'rise-plus-desktop');
+    request.on('response', (response) => {
+      const chunks = [];
+      response.on('data', (chunk) => chunks.push(chunk));
+      response.on('end', () => {
+        if (response.statusCode < 200 || response.statusCode >= 300) return reject(new Error(`HTTP ${response.statusCode}`));
+        try {
+          resolve(JSON.parse(Buffer.concat(chunks).toString('utf8')));
+        } catch (err) {
+          reject(err);
+        }
+      });
+      response.on('error', reject);
+    });
+    request.on('error', reject);
+    request.end();
+  });
+}
+
 /** The shell rarely needs updating (the app itself is live), but when it does, point people at the download. */
 async function checkForUpdates({ manual = false } = {}) {
   try {
-    const res = await fetch(RELEASES_API, { headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'rise-plus-desktop' } });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const release = await res.json();
+    const release = await getJson(RELEASES_API);
     const latest = String(release.tag_name || '').replace(/^v/, '');
-    if (latest && newerThan(latest, app.getVersion())) {
+    if (latest && newerThan(latest, APP_VERSION)) {
       const { response } = await dialog.showMessageBox({
         type: 'info',
         title: 'RISE+ update',
@@ -202,6 +269,7 @@ app.whenReady().then(() => {
       /* optional */
     }
   }
+  lockPermissions();
   buildMenu();
   createWindow();
   setTimeout(() => checkForUpdates().catch(() => {}), 15_000);

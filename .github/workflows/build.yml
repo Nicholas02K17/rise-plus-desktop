@@ -20,6 +20,8 @@ jobs:
         include:
           - os: windows-latest
             script: dist
+          - os: windows-latest
+            script: dist:legacy # Windows 7/8 build on Electron 22, see electron-builder.legacy.yml
           - os: ubuntu-latest
             script: dist:linux
     runs-on: ${{ matrix.os }}
@@ -55,6 +57,10 @@ jobs:
             dist/RISE-Plus-Setup-ia32.exe
             dist/RISE-Plus-Portable-x64.exe
             dist/RISE-Plus-Portable-ia32.exe
+            dist-legacy/RISE-Plus-Setup-win7-x64.exe
+            dist-legacy/RISE-Plus-Setup-win7-ia32.exe
+            dist-legacy/RISE-Plus-Portable-win7-x64.exe
+            dist-legacy/RISE-Plus-Portable-win7-ia32.exe
             dist/RISE-Plus.AppImage
             dist/rise-plus.deb
           fail_on_unmatched_files: false

@@ -1,0 +1,40 @@
+# Legacy build for Windows 7, 8 and 8.1: `npm run dist:legacy`.
+#
+# Electron 22.3.27 is the last Electron that starts on those Windows versions (Electron 23 requires Windows 10).
+# It stopped receiving security fixes in October 2023 and is pinned here on purpose; do not raise it. main.js
+# detects the old version and adds "RISEPlusLegacy/<version>" to the user agent, so the website can show its
+# use-at-your-own-risk notice and the server can refuse admin sign-ins from this build.
+#
+# electron-builder downloads the Electron zip and checks it against Electron's published SHASUMS256.txt.
+# Expected: win32-x64  ad723ed7dad32f9459f7a9de1fd6d718cf713c4809c2431503bea62ce8f786e6
+#           win32-ia32 1119ac7112590cb9c10a8c9b0bb5be65c0e11648a4f1311e6b7a5a00e497c2ce
+appId: org.canucanada.riseplus
+productName: RISE+
+copyright: CanU Canada
+electronVersion: 22.3.27
+directories:
+  output: dist-legacy
+  buildResources: build
+files:
+  - main.js
+  - error.html
+  - package.json
+win:
+  icon: build/icon.png
+  target:
+    - target: nsis
+      arch: [x64, ia32]
+    - target: portable
+      arch: [x64, ia32]
+nsis:
+  oneClick: true
+  perMachine: false
+  buildUniversalInstaller: false
+  artifactName: RISE-Plus-Setup-win7-${arch}.${ext}
+  shortcutName: RISE+
+  uninstallDisplayName: RISE+
+  deleteAppDataOnUninstall: false
+portable:
+  buildUniversalInstaller: false
+  artifactName: RISE-Plus-Portable-win7-${arch}.${ext}
+publish: null

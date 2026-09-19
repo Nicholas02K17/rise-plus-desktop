@@ -1,8 +1,8 @@
 {
   "name": "rise-plus-desktop",
   "productName": "RISE+",
-  "version": "1.1.0",
-  "description": "RISE+ by CanU Canada for Windows and Linux: opens the live RISE+ app in its own window.",
+  "version": "1.2.0",
+  "description": "RISE+ by CanU Canada for Windows and Linux: opens the live RISE+ app in its own window. A separate legacy build covers Windows 7 and 8.",
   "author": "CanU Canada <Nicholas02K17@users.noreply.github.com>",
   "license": "MIT",
   "private": true,
@@ -10,6 +10,7 @@
   "scripts": {
     "start": "electron .",
     "dist": "electron-builder --win --publish never",
+    "dist:legacy": "electron-builder --win --config electron-builder.legacy.yml --publish never",
     "dist:linux": "electron-builder --linux --publish never",
     "dist:all": "electron-builder --win --linux --publish never"
   },

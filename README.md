@@ -14,12 +14,28 @@ The finished files are attached to the newest release on this repository's **Rel
 | `RISE-Plus-Portable-ia32.exe` | Windows 32-bit, no installation. |
 | `RISE-Plus.AppImage` | Any 64-bit Linux. Make it executable and run it. |
 | `rise-plus.deb` | Ubuntu, Debian, Linux Mint and similar (64-bit). |
+| `RISE-Plus-Setup-win7-x64.exe`, `RISE-Plus-Setup-win7-ia32.exe` | Windows 7, 8 and 8.1 (64-bit and 32-bit). The legacy build, see below. Use at your own risk. |
+| `RISE-Plus-Portable-win7-x64.exe`, `RISE-Plus-Portable-win7-ia32.exe` | Windows 7, 8 and 8.1, no installation. |
 
 **Which Windows file?** The Get the app page on the website picks the right one automatically. To check by hand: open Settings, System, About, and read "System type": "64-bit operating system" means the `x64` file, "32-bit operating system" means the `ia32` file. Windows 11 is always 64-bit. Running a 64-bit file on a 32-bit computer gives the message "This app can't run on your PC"; the `ia32` file fixes that. The 32-bit files run on 64-bit Windows too, only a little slower.
 
 **Windows shows a warning the first time.** The files are not signed with a paid certificate (about 10 US dollars a month), so Windows says "Windows protected your PC". Click **More info**, then **Run anyway**. It happens only once per computer; the app is safe and its whole source is in this repository.
 
 **No 32-bit Linux.** Electron, the engine this program is built on, has not offered a 32-bit Linux build since 2019, so there is nothing to build from. People on a 32-bit Linux computer use the website in their browser instead.
+
+## Windows 7, 8 and 8.1: the legacy build
+
+The regular files need Windows 10 or newer. For Windows 7, 8 and 8.1 there is a separate build (`win7` in the file name, covering all three) made from the same `main.js` with **Electron 22.3.27**, the last Electron that starts on those systems. Nothing exists for Windows XP or Vista: no engine that runs there can open today's websites.
+
+Electron 22 stopped receiving security fixes in October 2023, and so did those Windows versions. The legacy build is therefore offered on these terms, which the website states plainly next to the download and inside the app (a bar with an "I understand" button):
+
+- People use it at their own risk. CanU Canada cannot protect an outdated computer and is not responsible for harm on the user's side, such as a stolen password.
+- Admin and president accounts cannot sign in from it. `main.js` adds `RISEPlusLegacy/<version>` to the user agent when it runs on Electron 22, and the RISE+ server refuses admin sign-ins and admin requests carrying that mark (error code `LEGACY_CLIENT`). A user agent can be faked, but faking it only lets someone pick the weaker client for themselves.
+- It cannot harm the RISE+ server: the server treats every client the same and checks everything itself.
+
+What the app itself does to limit the damage an old engine could do: it only ever shows rise-plus.onrender.com (any other address, including server redirects, opens in the normal browser), the page runs sandboxed with no access to Node, and the only browser permission it may be granted is notifications. This applies to both builds.
+
+`electron-builder.legacy.yml` pins the Electron version and names the files. electron-builder verifies the downloaded Electron against the official `SHASUMS256.txt`; the expected hashes are noted in that file. Do not raise the version: Electron 23 and newer do not start on Windows 7 or 8.
 
 ## Building it yourself
 
@@ -28,9 +44,12 @@ You need Node.js 22 or newer.
 ```
 npm install
 npm start          # run it from source
-npm run dist       # Windows installers + portable exes (64-bit and 32-bit), into dist/
-npm run dist:linux # AppImage + deb (on Linux)
+npm run dist        # Windows installers + portable exes (64-bit and 32-bit), into dist/
+npm run dist:legacy # the Windows 7/8 build on Electron 22, into dist-legacy/
+npm run dist:linux  # AppImage + deb (on Linux)
 ```
+
+`smoke.js` opens the window off-screen and reports what loaded (title, user agent, whether the Windows 7/8 notice appeared) plus a screenshot. Run it with the Electron under test, for example `SMOKE_MAIN=1 npx electron smoke.js`; in the VS Code terminal prefix `env -u ELECTRON_RUN_AS_NODE`.
 
 ### About the Electron version
 
